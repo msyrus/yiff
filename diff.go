@@ -53,7 +53,17 @@ type node struct {
 	typ         nodeType
 }
 
-func nodeToMap(n *yaml.Node) *node {
+func Parse(r io.Reader) (*yaml.Node, error) {
+	d1 := yaml.NewDecoder(r)
+	d1.KnownFields(true)
+	var f yaml.Node
+	if err := d1.Decode(&f); err != nil {
+		return nil, err
+	}
+	return &f, nil
+}
+
+func buildTree(n *yaml.Node) *node {
 	r := node{
 		line: n.Line,
 		colm: n.Column,
@@ -62,7 +72,7 @@ func nodeToMap(n *yaml.Node) *node {
 	switch n.Kind {
 	case yaml.DocumentNode:
 		if len(n.Content) > 0 {
-			return nodeToMap(n.Content[0])
+			return buildTree(n.Content[0])
 		}
 
 	case yaml.MappingNode:
@@ -70,7 +80,7 @@ func nodeToMap(n *yaml.Node) *node {
 		n.Decode(&tmp)
 		vn := map[string]*node{}
 		for k, v := range tmp {
-			vn[k] = nodeToMap(&v)
+			vn[k] = buildTree(&v)
 		}
 		r.typ = nodeTypeMap
 		r.value = vn
@@ -80,7 +90,7 @@ func nodeToMap(n *yaml.Node) *node {
 		n.Decode(&tmp)
 		vn := []*node{}
 		for _, v := range tmp {
-			vn = append(vn, nodeToMap(&v))
+			vn = append(vn, buildTree(&v))
 		}
 		r.typ = nodeTypeSeq
 		r.value = vn
@@ -90,7 +100,7 @@ func nodeToMap(n *yaml.Node) *node {
 		n.Decode(&r.value)
 
 	case yaml.AliasNode:
-		v := nodeToMap(n.Alias)
+		v := buildTree(n.Alias)
 		r.value = v.value
 		r.typ = v.typ
 	}
@@ -199,7 +209,7 @@ func Check(r io.Reader) error {
 		return err
 	}
 
-	printMyNode("", nodeToMap(&f1))
+	printMyNode("", buildTree(&f1))
 	return nil
 }
 
@@ -211,22 +221,17 @@ func Check(r io.Reader) error {
 
 // Diff returns the diffs of the files
 func Diff(file1, file2 io.Reader) (Results, error) {
-	var f1 yaml.Node
-	var f2 yaml.Node
-
-	d1 := yaml.NewDecoder(file1)
-	d1.KnownFields(true)
-	if err := d1.Decode(&f1); err != nil {
+	f1, err := Parse(file1)
+	if err != nil {
 		return nil, err
 	}
 
-	d2 := yaml.NewDecoder(file2)
-	d2.KnownFields(true)
-	if err := d2.Decode(&f2); err != nil {
+	f2, err := Parse(file2)
+	if err != nil {
 		return nil, err
 	}
 
-	add, sub := diff(nodeToMap(&f1), nodeToMap(&f2))
+	add, sub := diff(buildTree(f1), buildTree(f2))
 	for _, v := range sub {
 		printMyNode("-", v)
 		fmt.Println("\n--------------")
