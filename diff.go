@@ -109,7 +109,6 @@ func buildTree(n *yaml.Node) *node {
 }
 
 func printMyNode(suf string, n *node) {
-	// fmt.Print(suf, n.line, ":", n.colm)
 	switch v := n.value.(type) {
 	case *node:
 		printMyNode("  ", v)
@@ -212,12 +211,6 @@ func Check(r io.Reader) error {
 	printMyNode("", buildTree(&f1))
 	return nil
 }
-
-// func nodeToMap(n *yaml.Node) map[string]interface{} {
-// 	switch n.Kind {
-// 	case yaml.ScalarNode:
-// 	}
-// }
 
 // Diff returns the diffs of the files
 func Diff(file1, file2 io.Reader) (Results, error) {
