@@ -53,6 +53,7 @@ type node struct {
 	typ         nodeType
 }
 
+// Parse parses a yaml tree from reader
 func Parse(r io.Reader) (*yaml.Node, error) {
 	d1 := yaml.NewDecoder(r)
 	d1.KnownFields(true)
@@ -200,16 +201,6 @@ inside:
 	}
 
 	return
-}
-
-func Check(r io.Reader) error {
-	var f1 yaml.Node
-	if err := yaml.NewDecoder(r).Decode(&f1); err != nil {
-		return err
-	}
-
-	printMyNode("", buildTree(&f1))
-	return nil
 }
 
 // Diff returns the diffs of the files
